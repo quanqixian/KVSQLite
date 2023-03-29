@@ -5,6 +5,7 @@
 #include <mutex>
 #include "sqlite3.h"
 #include "Status.h"
+#include "options.h"
 
 namespace KVSQLite
 {
@@ -104,6 +105,7 @@ public:
                 break;
             }
 
+            /* By default, write is asynchronous */
             if(1)
             {
                 char *errmsg = nullptr;
@@ -177,11 +179,26 @@ public:
         close();
     };
 
-    Status put(const K & key, const V & value)
+    Status put(const WriteOptions & options, const K & key, const V & value)
     {
+        int sqlRet = 0;
         std::lock_guard<std::mutex> locker(m_mutex);
 
-        int sqlRet= sqlite3_reset(m_putSQL);
+        if(m_syncWrite != options.sync)
+        {
+            m_syncWrite = options.sync;
+            std::string query = m_syncWrite ? "PRAGMA synchronous = FULL;" : "PRAGMA synchronous = OFF;";
+
+            char *errmsg = nullptr;
+            sqlRet = sqlite3_exec(m_db, query.c_str(), nullptr, nullptr, &errmsg);
+            if(SQLITE_OK != sqlRet)
+            {
+                std::string databaseErr = "Fail to exec:" + query;
+                return Status(errmsg ? errmsg : "", databaseErr, Status::UnknownError, std::to_string(sqlRet));
+            }
+        }
+
+        sqlRet= sqlite3_reset(m_putSQL);
         if(SQLITE_OK != sqlRet)
         {
             std::string databaseErr = "Fail to sqlite3_reset.";
@@ -273,6 +290,7 @@ private:
     sqlite3_stmt *m_putSQL = nullptr;
     sqlite3_stmt *m_getSQL = nullptr;
     std::mutex m_mutex;
+    bool m_syncWrite = false;
 };
 
 }/* end of namespace KVSQLite */

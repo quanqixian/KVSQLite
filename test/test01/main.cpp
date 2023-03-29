@@ -10,9 +10,11 @@ TEST(KVSQLite, put)
     KVSQLite::Status status = KVSQLite::DB<int, int>::open("KVSQLite.db", &pDB);
     ASSERT_EQ(status.ok(), true);
 
-    for(int i= 1; i <= 10; i++)
+    KVSQLite::WriteOptions options;
+
+    for(int i= 1; i <= 100; i++)
     {
-        status = pDB->put(i, i*100);
+        status = pDB->put(options, i, i*100);
         EXPECT_EQ(status.ok(), true);
     }
 
