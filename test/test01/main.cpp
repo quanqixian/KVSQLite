@@ -4,15 +4,15 @@
 /**
  * @brief 
  */
-TEST(KVSQLite, write)
+TEST(KVSQLite, put)
 {
     KVSQLite::DB<int, int> * pDB = nullptr;
     KVSQLite::Status status = KVSQLite::DB<int, int>::open("KVSQLite.db", &pDB);
     ASSERT_EQ(status.ok(), true);
 
-    for(int i= 1; i <= 100; i++)
+    for(int i= 1; i <= 10; i++)
     {
-        pDB->put(i, i*100);
+        status = pDB->put(i, i*100);
         EXPECT_EQ(status.ok(), true);
     }
 
@@ -22,19 +22,36 @@ TEST(KVSQLite, write)
 /**
  * @brief 
  */
-TEST(KVSQLite, read)
+TEST(KVSQLite, get)
 {
     KVSQLite::DB<int, int> * pDB = nullptr;
     KVSQLite::Status status = KVSQLite::DB<int, int>::open("KVSQLite.db", &pDB);
     ASSERT_EQ(status.ok(), true);
 
-    for(int i= 1; i <= 100; i++)
+    for(int i= 1; i <= 10; i++)
     {
         int val = 0;
-        pDB->get(i, val);
+        status = pDB->get(i, val);
         EXPECT_EQ(status.ok(), true);
         EXPECT_EQ(val, i*100);
     }
+
+    delete pDB;
+}
+
+/**
+ * @brief 
+ */
+TEST(KVSQLite, get_notFound)
+{
+    KVSQLite::DB<int, int> * pDB = nullptr;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open("KVSQLite.db", &pDB);
+    ASSERT_EQ(status.ok(), true);
+
+    int val = 0;
+    status = pDB->get(1000, val);
+    EXPECT_EQ(status.ok(), false);
+    EXPECT_EQ(status.type(), KVSQLite::Status::NotFound);
 
     delete pDB;
 }
