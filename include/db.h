@@ -2,6 +2,7 @@
 #define __KVSQLITE_DB_H__
 
 #include <string>
+#include <mutex>
 #include "sqlite3.h"
 #include "Status.h"
 
@@ -124,7 +125,7 @@ public:
 
             {
                 const std::string query = "INSERT OR REPLACE INTO " + tableName + "(key, value) VALUES (?, ?)";
-                sqlRet = sqlite3_prepare(pDB->m_db, query.c_str(), query.size(), &pDB->m_putSQL, nullptr);
+                sqlRet = sqlite3_prepare_v2(pDB->m_db, query.c_str(), query.size(), &pDB->m_putSQL, nullptr);
                 if(SQLITE_OK != sqlRet)
                 {
                     std::string databaseErr = "Fail to exec:" + query;
@@ -135,7 +136,7 @@ public:
 
             {
                 const std::string query = "SELECT value FROM " + tableName + " WHERE key = ?";
-                sqlRet = sqlite3_prepare(pDB->m_db, query.c_str(), query.size(), &pDB->m_getSQL, nullptr);
+                sqlRet = sqlite3_prepare_v2(pDB->m_db, query.c_str(), query.size(), &pDB->m_getSQL, nullptr);
                 if(SQLITE_OK != sqlRet)
                 {
                     std::string databaseErr = "Fail to exec:" + query;
@@ -159,6 +160,8 @@ public:
 
     Status put(const K & key, const V & value)
     {
+        std::lock_guard<std::mutex> locker(m_mutex);
+
         int sqlRet= sqlite3_reset(m_putSQL);
         if(SQLITE_OK != sqlRet)
         {
@@ -192,6 +195,8 @@ public:
 
     Status get(const K & key, V & value)
     {
+        std::lock_guard<std::mutex> locker(m_mutex);
+
         int sqlRet= sqlite3_reset(m_getSQL);
         if(SQLITE_OK != sqlRet)
         {
@@ -207,16 +212,14 @@ public:
         }
 
         sqlRet = sqlite3_step(m_getSQL);
-        if(SQLITE_DONE == sqlRet)
+
+        if(SQLITE_ROW != sqlRet)
         {
-            std::string databaseErr = "Key is not found.";
+            std::string databaseErr = "Not found.";
             return Status(sqlite3_errmsg(m_db), databaseErr, Status::NotFound, std::to_string(sqlRet));
         }
-        else
-        {
-            value = mapping_traits<V>::getColumn(m_getSQL, 0);
-        }
 
+        value = mapping_traits<V>::getColumn(m_getSQL, 0);
         return Status();
     }
 private:
@@ -225,6 +228,8 @@ private:
     }
     void close()
     {
+        std::lock_guard<std::mutex> locker(m_mutex);
+
         if(m_getSQL)
         {
             sqlite3_finalize(m_getSQL);
@@ -248,6 +253,7 @@ private:
     sqlite3 *m_db = nullptr;
     sqlite3_stmt *m_putSQL = nullptr;
     sqlite3_stmt *m_getSQL = nullptr;
+    std::mutex m_mutex;
 };
 
 }/* end of namespace KVSQLite */
