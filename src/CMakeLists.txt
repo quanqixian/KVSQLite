@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(KVSQLITE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/sqlite/sqlite3.c
+    Status.cpp
 )
 
 find_package(Threads REQUIRED)
