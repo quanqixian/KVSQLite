@@ -104,10 +104,29 @@ public:
                 break;
             }
 
+            if(1)
+            {
+                char *errmsg = nullptr;
+                const std::string query = "PRAGMA synchronous = OFF;";
+
+                 /*
+                  * If the 5th parameter to sqlite3_exec() is not NULL and no errors occur,
+                  * then sqlite3_exec() sets the pointer in its 5th parameter to NULL before
+                  * returning.
+                  */
+                 sqlRet = sqlite3_exec(pDB->m_db, query.c_str(), nullptr, nullptr, &errmsg);
+                 if(SQLITE_OK != sqlRet)
+                 {
+                     std::string databaseErr = "Fail to exec:" + query;
+                     status = Status(errmsg ? errmsg : "", databaseErr, Status::UnknownError, std::to_string(sqlRet));
+                     break;
+                 }
+            }
+
             const std::string tableName = "KVTable";
             {
                 char *errmsg = nullptr;
-                const std::string query = ("CREATE TABLE IF NOT EXISTS " + tableName + "(key PRIMARY KEY, value)");
+                const std::string query = "CREATE TABLE IF NOT EXISTS " + tableName + "(key PRIMARY KEY, value)";
 
                  /*
                   * If the 5th parameter to sqlite3_exec() is not NULL and no errors occur,
