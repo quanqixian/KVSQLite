@@ -165,6 +165,17 @@ public:
                     break;
                 }
             }
+
+            {
+                const std::string query = "DELETE FROM " + tableName + " WHERE key = ?";
+                sqlRet = sqlite3_prepare_v2(pDB->m_db, query.c_str(), query.size(), &pDB->m_delSQL, nullptr);
+                if(SQLITE_OK != sqlRet)
+                {
+                    std::string databaseErr = "Fail to exec:" + query;
+                    status = Status(sqlite3_errmsg(pDB->m_db), databaseErr, Status::InvalidArgument, std::to_string(sqlRet));
+                    break;
+                }
+            }
         }while(0);
 
         if(!status.ok())
@@ -258,6 +269,47 @@ public:
         value = mapping_traits<V>::getColumn(m_getSQL, 0);
         return Status();
     }
+    Status del(const WriteOptions & options, const K & key)
+    {
+        int sqlRet = 0;
+        std::lock_guard<std::mutex> locker(m_mutex);
+
+        if(m_syncWrite != options.sync)
+        {
+            m_syncWrite = options.sync;
+            std::string query = m_syncWrite ? "PRAGMA synchronous = FULL;" : "PRAGMA synchronous = OFF;";
+
+            char *errmsg = nullptr;
+            sqlRet = sqlite3_exec(m_db, query.c_str(), nullptr, nullptr, &errmsg);
+            if(SQLITE_OK != sqlRet)
+            {
+                std::string databaseErr = "Fail to exec:" + query;
+                return Status(errmsg ? errmsg : "", databaseErr, Status::UnknownError, std::to_string(sqlRet));
+            }
+        }
+        sqlRet= sqlite3_reset(m_delSQL);
+        if(SQLITE_OK != sqlRet)
+        {
+            std::string databaseErr = "Fail to sqlite3_reset.";
+            return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        }
+
+        sqlRet = mapping_traits<K>::bind(m_delSQL, 1, key);
+        if(SQLITE_OK != sqlRet)
+        {
+            std::string databaseErr = "Fail to bind key.";
+            return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        }
+
+        sqlRet = sqlite3_step(m_delSQL);
+        if(SQLITE_DONE != sqlRet)
+        {
+            std::string databaseErr = "Fail to sqlite3_step.";
+            return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        }
+
+        return Status();
+    }
 private:
     DB()
     {
@@ -289,6 +341,7 @@ private:
     sqlite3 *m_db = nullptr;
     sqlite3_stmt *m_putSQL = nullptr;
     sqlite3_stmt *m_getSQL = nullptr;
+    sqlite3_stmt *m_delSQL = nullptr;
     std::mutex m_mutex;
     bool m_syncWrite = false;
 };
