@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "db.h"
+#include <thread>
 
 /**
  * @brief 
@@ -51,7 +52,7 @@ TEST(KVSQLite, get_notFound)
     ASSERT_EQ(status.ok(), true);
 
     int val = 0;
-    status = pDB->get(1000, val);
+    status = pDB->get(99999, val);
     EXPECT_EQ(status.ok(), false);
     EXPECT_EQ(status.type(), KVSQLite::Status::NotFound);
 
@@ -79,6 +80,40 @@ TEST(KVSQLite, del)
     }
 
     delete pDB;
+}
+
+/**
+ * @brief 
+ */
+TEST(KVSQLite, multiDB)
+{
+    KVSQLite::DB<int, int> * pDBA = nullptr;
+    KVSQLite::DB<int, int> * pDBB = nullptr;
+
+    KVSQLite::Status statusA = KVSQLite::DB<int, int>::open("KVSQLiteA.db", &pDBA);
+    ASSERT_EQ(statusA.ok(), true);
+
+    KVSQLite::Status statusB = KVSQLite::DB<int, int>::open("KVSQLiteB.db", &pDBB);
+    ASSERT_EQ(statusB.ok(), true);
+
+
+    KVSQLite::WriteOptions optionsB;
+    optionsB.sync = false;
+    statusB = pDBB->put(optionsB, 0, 0);
+
+    KVSQLite::WriteOptions optionsA;
+    optionsA.sync = true;
+    statusA = pDBA->put(optionsA, 0, 0);
+
+
+    for(int i= 1; i <= 10000; i++)
+    {
+        statusB = pDBB->put(optionsB, i, i*100);
+        EXPECT_EQ(statusB.ok(), true);
+    }
+
+    delete pDBA;
+    delete pDBB;
 }
 
 int main(int argc, char **argv)

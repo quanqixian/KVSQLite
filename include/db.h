@@ -238,7 +238,7 @@ public:
         }
 
         return Status();
-    };
+    }
 
     Status get(const K & key, V & value)
     {
