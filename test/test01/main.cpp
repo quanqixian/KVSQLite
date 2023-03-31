@@ -116,6 +116,64 @@ TEST(KVSQLite, multiDB)
     delete pDBB;
 }
 
+/**
+ * @brief
+ */
+TEST(KVSQLite, Memory)
+{
+    KVSQLite::DB<int, int> * pDB = nullptr;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open(":memory:", &pDB);
+    ASSERT_EQ(status.ok(), true);
+
+    KVSQLite::WriteOptions options;
+    options.sync = true;
+
+    for(int i= 1; i <= 1000; i++)
+    {
+        status = pDB->put(options, i, i*100);
+        EXPECT_EQ(status.ok(), true);
+    }
+
+    delete pDB;
+}
+
+/**
+ * @brief
+ */
+TEST(KVSQLite, Generics)
+{
+    {
+        KVSQLite::DB<std::string, double> * pDB = nullptr;
+        KVSQLite::Status status = KVSQLite::DB<std::string, double>::open(":memory:", &pDB);
+        ASSERT_EQ(status.ok(), true);
+
+        KVSQLite::WriteOptions options;
+        status = pDB->put(options, "3.14", 3.14);
+        EXPECT_EQ(status.ok(), true);
+        double val = 0;
+        status = pDB->get("3.14", val);
+        EXPECT_EQ(status.ok(), true);
+        status = pDB->del(KVSQLite::WriteOptions(), "3.14");
+        EXPECT_EQ(status.ok(), true);
+        delete pDB;
+    }
+    {
+        KVSQLite::DB<int64_t, double> * pDB = nullptr;
+        KVSQLite::Status status = KVSQLite::DB<int64_t, double>::open(":memory:", &pDB);
+        ASSERT_EQ(status.ok(), true);
+
+        KVSQLite::WriteOptions options;
+        status = pDB->put(options, 1, 3.14);
+        EXPECT_EQ(status.ok(), true);
+        double val = 0;
+        status = pDB->get(1, val);
+        EXPECT_EQ(status.ok(), true);
+        status = pDB->del(KVSQLite::WriteOptions(), 1);
+        EXPECT_EQ(status.ok(), true);
+        delete pDB;
+    }
+}
+
 int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
