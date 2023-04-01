@@ -76,7 +76,7 @@ template<typename K, typename V>
 class DB
 {
 public:
-    static Status open(const std::string & filename, DB ** ppDB)
+    static Status open(const Options & options, const std::string & filename, DB ** ppDB)
     {
         if(nullptr == ppDB)
         {

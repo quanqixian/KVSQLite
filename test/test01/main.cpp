@@ -8,7 +8,8 @@
 TEST(KVSQLite, put)
 {
     KVSQLite::DB<int, int> * pDB = nullptr;
-    KVSQLite::Status status = KVSQLite::DB<int, int>::open("KVSQLite.db", &pDB);
+    KVSQLite::Options opt;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, "KVSQLite.db", &pDB);
     ASSERT_EQ(status.ok(), true);
 
     KVSQLite::WriteOptions options;
@@ -28,7 +29,8 @@ TEST(KVSQLite, put)
 TEST(KVSQLite, get)
 {
     KVSQLite::DB<int, int> * pDB = nullptr;
-    KVSQLite::Status status = KVSQLite::DB<int, int>::open("KVSQLite.db", &pDB);
+    KVSQLite::Options opt;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, "KVSQLite.db", &pDB);
     ASSERT_EQ(status.ok(), true);
 
     for(int i= 1; i <= 100; i++)
@@ -48,7 +50,8 @@ TEST(KVSQLite, get)
 TEST(KVSQLite, get_notFound)
 {
     KVSQLite::DB<int, int> * pDB = nullptr;
-    KVSQLite::Status status = KVSQLite::DB<int, int>::open("KVSQLite.db", &pDB);
+    KVSQLite::Options opt;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, "KVSQLite.db", &pDB);
     ASSERT_EQ(status.ok(), true);
 
     int val = 0;
@@ -65,7 +68,8 @@ TEST(KVSQLite, get_notFound)
 TEST(KVSQLite, del)
 {
     KVSQLite::DB<int, int> * pDB = nullptr;
-    KVSQLite::Status status = KVSQLite::DB<int, int>::open("KVSQLite.db", &pDB);
+    KVSQLite::Options opt;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, "KVSQLite.db", &pDB);
     ASSERT_EQ(status.ok(), true);
 
     for(int i= 1; i <= 10; i++)
@@ -89,11 +93,12 @@ TEST(KVSQLite, multiDB)
 {
     KVSQLite::DB<int, int> * pDBA = nullptr;
     KVSQLite::DB<int, int> * pDBB = nullptr;
+    KVSQLite::Options opt;
 
-    KVSQLite::Status statusA = KVSQLite::DB<int, int>::open("KVSQLiteA.db", &pDBA);
+    KVSQLite::Status statusA = KVSQLite::DB<int, int>::open(opt, "KVSQLiteA.db", &pDBA);
     ASSERT_EQ(statusA.ok(), true);
 
-    KVSQLite::Status statusB = KVSQLite::DB<int, int>::open("KVSQLiteB.db", &pDBB);
+    KVSQLite::Status statusB = KVSQLite::DB<int, int>::open(opt, "KVSQLiteB.db", &pDBB);
     ASSERT_EQ(statusB.ok(), true);
 
 
@@ -122,7 +127,8 @@ TEST(KVSQLite, multiDB)
 TEST(KVSQLite, Memory)
 {
     KVSQLite::DB<int, int> * pDB = nullptr;
-    KVSQLite::Status status = KVSQLite::DB<int, int>::open(":memory:", &pDB);
+    KVSQLite::Options opt;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, ":memory:", &pDB);
     ASSERT_EQ(status.ok(), true);
 
     KVSQLite::WriteOptions options;
@@ -144,7 +150,9 @@ TEST(KVSQLite, Generics)
 {
     {
         KVSQLite::DB<std::string, double> * pDB = nullptr;
-        KVSQLite::Status status = KVSQLite::DB<std::string, double>::open(":memory:", &pDB);
+        KVSQLite::Options opt;
+
+        KVSQLite::Status status = KVSQLite::DB<std::string, double>::open(opt, ":memory:", &pDB);
         ASSERT_EQ(status.ok(), true);
 
         KVSQLite::WriteOptions options;
@@ -159,7 +167,8 @@ TEST(KVSQLite, Generics)
     }
     {
         KVSQLite::DB<int64_t, double> * pDB = nullptr;
-        KVSQLite::Status status = KVSQLite::DB<int64_t, double>::open(":memory:", &pDB);
+        KVSQLite::Options opt;
+        KVSQLite::Status status = KVSQLite::DB<int64_t, double>::open(opt, ":memory:", &pDB);
         ASSERT_EQ(status.ok(), true);
 
         KVSQLite::WriteOptions options;

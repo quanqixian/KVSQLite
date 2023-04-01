@@ -5,6 +5,21 @@
 namespace KVSQLite
 {
 
+/**
+ * Options to control the behavior of a database (passed to DB::Open)
+ */
+struct Q_SQL_EXPORT Options
+{
+    /* Create an Options object with default values for all fields. */
+    Options() = default;
+
+    /* If true, the database will be created if it is missing. */
+    bool create_if_missing = true;
+
+    /* If true, an error is raised if the database already exists. */
+    bool error_if_exists = false;
+};
+
 /* Options that control write operations */
 struct Q_SQL_EXPORT WriteOptions
 {
