@@ -194,6 +194,7 @@ TEST(KVSQLite, write)
     ASSERT_EQ(status.ok(), true);
 
     KVSQLite::WriteOptions options;
+    options.sync = true;
     KVSQLite::WriteBatch<int, int> batch;
 
     for(int i= 1; i <= 10000; i++)
