@@ -183,6 +183,29 @@ TEST(KVSQLite, Generics)
     }
 }
 
+/**
+ * @brief
+ */
+TEST(KVSQLite, write)
+{
+    KVSQLite::DB<int, int> * pDB = nullptr;
+    KVSQLite::Options opt;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, "KVSQLite.db", &pDB);
+    ASSERT_EQ(status.ok(), true);
+
+    KVSQLite::WriteOptions options;
+    KVSQLite::WriteBatch<int, int> batch;
+
+    for(int i= 1; i <= 10000; i++)
+    {
+        batch.put(i, i+1);
+    }
+
+    status = pDB->write(options, &batch);
+    EXPECT_EQ(status.ok(), true);
+    delete pDB;
+}
+
 int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
