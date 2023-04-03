@@ -404,7 +404,7 @@ public:
                 }();
             }
 
-            if(false == status.ok())
+            if(!status.ok())
             {
                 break;
             }

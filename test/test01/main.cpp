@@ -197,9 +197,16 @@ TEST(KVSQLite, write)
     options.sync = true;
     KVSQLite::WriteBatch<int, int> batch;
 
-    for(int i= 1; i <= 10000; i++)
+    for(int i= 1; i <= 200; i++)
     {
         batch.put(i, i+1);
+    }
+    for(int i= 1; i <= 200; i++)
+    {
+        if(i & 0x01)
+        {
+            batch.del(i);
+        }
     }
 
     status = pDB->write(options, &batch);
