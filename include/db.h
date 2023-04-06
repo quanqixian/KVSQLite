@@ -3,6 +3,7 @@
 
 #include <string>
 #include <mutex>
+#include <stdio.h>
 #include "sqlite3.h"
 #include "Status.h"
 #include "options.h"
@@ -113,15 +114,36 @@ public:
 
         DB * & pDB = *ppDB;
         pDB = new(std::nothrow) DB();
+        if(nullptr == pDB)
+        {
+            return Status("", "Fail to new.", Status::UnknownError, "0");
+        }
 
         do
         {
+            if(options.error_if_exists)
+            {
+                /* if open success, then file exist */
+                FILE * pF = fopen(filename.c_str(), "r");
+                if(nullptr != pF)
+                {
+                    fclose(pF);
+                    std::string databaseErr = "File already exist:" + filename;
+                    status = Status("", databaseErr, Status::IOError, "0");
+                    break;
+                }
+
+            }
             /* open or create database file.
              * If the filename is an empty string, then a private, temporary on-disk
              * database will be created. This private database will be automatically
              * deleted as soon as the database connection is closed.
              */
-            int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+            int flags = SQLITE_OPEN_READWRITE;
+            if(options.create_if_missing)
+            {
+                flags |= SQLITE_OPEN_CREATE;
+            }
             sqlRet = sqlite3_open_v2(filename.c_str(), &pDB->m_db, flags, nullptr);
             if(SQLITE_OK != sqlRet)
             {
@@ -374,7 +396,7 @@ public:
                         std::string databaseErr = "Fail to sqlite3_step.";
                         return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                     }
-					return Status();
+                    return Status();
                 }();
             }
             else if(WriteBatch<K, V>::NodeType::DEL == iter->type)
@@ -400,7 +422,7 @@ public:
                         std::string databaseErr = "Fail to sqlite3_step.";
                         return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                     }
-					return Status();
+                    return Status();
                 }();
             }
 
@@ -443,6 +465,11 @@ private:
         {
             sqlite3_finalize(m_putSQL);
             m_putSQL = nullptr;
+        }
+        if(m_delSQL)
+        {
+            sqlite3_finalize(m_delSQL);
+            m_delSQL = nullptr;
         }
         if(m_db)
         {
