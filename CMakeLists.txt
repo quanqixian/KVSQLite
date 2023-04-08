@@ -15,6 +15,7 @@ option(KVSQLITE_BUILD_DOXYGEN_DOC "Generate API documentation using doxygen." ON
 
 add_subdirectory(thirdparty)
 add_subdirectory(src)
+add_subdirectory(example)
 
 if(KVSQLITE_WITH_TESTS)
 	enable_testing()
