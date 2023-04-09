@@ -17,6 +17,7 @@ find_package(Threads REQUIRED)
 if(KVSQLITE_BUILD_SHARED_LIBS)
 	add_library(KVSQLite SHARED ${KVSQLITE_SOURCES})
 	set_target_properties(KVSQLite PROPERTIES OUTPUT_NAME KVSQLite)
+	set_target_properties(KVSQLite PROPERTIES INSTALL_RPATH "$ORIGIN")
 
 	target_include_directories(KVSQLite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include/
         ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/sqlite/

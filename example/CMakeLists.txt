@@ -16,6 +16,7 @@ foreach(example ${EXAMPLES})
 	add_executable(${example} ${example}.cpp)
 	target_include_directories(${example} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include/)
 	target_link_libraries(${example} KVSQLite)
+	set_target_properties(${example} PROPERTIES INSTALL_RPATH "$ORIGIN;../lib")
 	install(TARGETS ${example})
 endforeach()
 
