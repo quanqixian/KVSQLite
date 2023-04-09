@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(EXAMPLES
     example01
+    example02
 )
 
 foreach(example ${EXAMPLES})
