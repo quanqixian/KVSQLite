@@ -89,6 +89,22 @@ TEST(KVSQLite, del)
 /**
  * @brief 
  */
+TEST(KVSQLite, delNoExist)
+{
+    KVSQLite::DB<int, int> * pDB = nullptr;
+    KVSQLite::Options opt;
+    KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, "KVSQLite.db", &pDB);
+    ASSERT_EQ(status.ok(), true);
+
+	status = pDB->del(KVSQLite::WriteOptions(), 99999);
+	EXPECT_EQ(status.ok(), true);
+
+    delete pDB;
+}
+
+/**
+ * @brief 
+ */
 TEST(KVSQLite, multiDB)
 {
     KVSQLite::DB<int, int> * pDBA = nullptr;
