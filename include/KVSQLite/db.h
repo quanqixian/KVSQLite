@@ -102,6 +102,13 @@ private:
     }
 
 public:
+    /**
+     * @brief      Open a database
+     * @param[in]  options : options to control the behavior of a database. see @ref Options for details. 
+     * @param[in]  filename : database path
+     * @param[out] ppDB : pointer to a database pointer
+     * @return     Status : on success Status::ok() is true. See @ref Status for details. 
+     */
     static Status open(const Options & options, const std::string & filename, DB ** ppDB)
     {
         if(nullptr == ppDB)

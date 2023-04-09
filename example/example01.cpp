@@ -2,7 +2,7 @@
 #include <string>
 #include <iostream>
 
-void example01()
+void example()
 {
     KVSQLite::DB<std::string, std::string> * pDB = nullptr;
     KVSQLite::Status status = KVSQLite::DB<std::string, std::string>::open(KVSQLite::Options(), "KVSQLite.db", &pDB);
@@ -42,6 +42,6 @@ void example01()
 
 int main(int argc, const char *argv[])
 {
-    example01();
+    example();
     return 0;
 }
