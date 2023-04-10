@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "sqlite3.h"
 #include "Status.h"
-#include "options.h"
+#include "Options.h"
 #include "WriteBatch.h"
 
 namespace KVSQLite
@@ -322,7 +322,10 @@ public:
 
     /**
      * @brief      Remove the database entry (if any) for "key". It is not an error if "key" did not exist in the database.
-	 */
+     * @param[in]  options : Options that control write operations. see @ref WriteOptions for details. 
+     * @param[in]  key : key of data
+     * @return     Status : on success Status::ok() is true and false on error. See @ref Status for details. 
+     */
     Status del(const WriteOptions & options, const K & key)
     {
         int sqlRet = 0;
@@ -362,6 +365,12 @@ public:
         return Status();
     }
 
+    /**
+     * @brief      
+     * @param[in]  options : Options that control write operations. see @ref WriteOptions for details. 
+     * @param[in]  updates : 
+     * @return     Status : on success Status::ok() is true and false on error. See @ref Status for details. 
+     */
     Status write(const WriteOptions & options, WriteBatch<K, V>* updates)
     {
         Status status;

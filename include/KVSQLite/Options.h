@@ -1,6 +1,6 @@
 #ifndef _KVSQLITE_OPTIONS_H_
 #define _KVSQLITE_OPTIONS_H_
-#include "export.h"
+#include "Export.h"
 
 namespace KVSQLite
 {

@@ -2,7 +2,7 @@
 #define _KVSQLITE_STATUS_H_
 
 #include <string>
-#include "export.h"
+#include "Export.h"
 
 namespace KVSQLite
 {
