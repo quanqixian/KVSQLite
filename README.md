@@ -17,7 +17,7 @@ shows how to open a database, creating it if necessary:
 
 ```c++
 #include <cassert>
-#include "KVSQLite/db.h"
+#include "KVSQLite/DB.h"
 
 KVSQLite::DB<std::string, std::string> * pDB = nullptr;
 KVSQLite::Options options;

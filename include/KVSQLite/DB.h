@@ -231,6 +231,13 @@ public:
         close();
     };
 
+    /**
+     * @brief      Set the database entry for "key" to "value".
+     * @param[in]  options : Options that control write operations. see @ref WriteOptions for details. 
+     * @param[in]  key : key of data
+     * @param[in]  value : value of data
+     * @return     Status : on success Status::ok() is true and false on error. See @ref Status for details. 
+     */
     Status put(const WriteOptions & options, const K & key, const V & value)
     {
         int sqlRet = 0;
@@ -277,6 +284,12 @@ public:
         return Status();
     }
 
+    /**
+     * @brief      If the database contains an entry for "key" store the corresponding value in value.
+     * @param[in]  key : key of data
+     * @param[in]  value : value of data
+     * @return     Status : on success Status::ok() is true and false on error. See @ref Status for details. 
+     */
     Status get(const K & key, V & value)
     {
         std::lock_guard<std::mutex> locker(m_mutex);
@@ -307,6 +320,9 @@ public:
         return Status();
     }
 
+    /**
+     * @brief      Remove the database entry (if any) for "key". It is not an error if "key" did not exist in the database.
+	 */
     Status del(const WriteOptions & options, const K & key)
     {
         int sqlRet = 0;

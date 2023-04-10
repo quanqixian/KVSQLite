@@ -1,4 +1,4 @@
-#include "KVSQLite/db.h"
+#include "KVSQLite/DB.h"
 #include <string>
 #include <iostream>
 

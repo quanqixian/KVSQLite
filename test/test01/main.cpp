@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "KVSQLite/db.h"
+#include "KVSQLite/DB.h"
 #include <thread>
 
 /**
