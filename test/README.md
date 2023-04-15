@@ -21,7 +21,7 @@ git clone https://gitee.com/Q_uan/KVSQLite.git
    In this step, ` -DCMAKE_BUILD_TYPE=Debug ` needs to be specified. 
 
 ```cmake
-cd EVHttpServer
+cd KVSQLite
 cmake -B build -S . -DCMAKE_INSTALL_PREFIX=/path/to/install  -DCMAKE_BUILD_TYPE=Debug 
 ```
 
