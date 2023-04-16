@@ -1,3 +1,8 @@
+/**
+ * @file DB.h
+ * @brief The DB class implements.
+ */
+
 #ifndef __KVSQLITE_DB_H__
 #define __KVSQLITE_DB_H__
 
@@ -74,6 +79,9 @@ public:
     }
 };
 
+/**
+ * @brief The DB class implements the database operation interface.
+ */
 template<typename K, typename V>
 class DB
 {
