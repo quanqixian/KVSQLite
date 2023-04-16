@@ -13,6 +13,7 @@
 #include "Status.h"
 #include "Options.h"
 #include "WriteBatch.h"
+#include "Export.h"
 
 namespace KVSQLite
 {
@@ -83,7 +84,7 @@ public:
  * @brief The DB class implements the database operation interface.
  */
 template<typename K, typename V>
-class DB
+class KVSQLITE_EXPORT DB
 {
 private:
     static inline Status execSQL(sqlite3 * p, const std::string & sql)

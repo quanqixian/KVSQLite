@@ -7,7 +7,7 @@ namespace KVSQLite
 {
 
 template<typename K, typename V>
-class WriteBatch
+class KVSQLITE_EXPORT WriteBatch
 {
 public:
     enum NodeType

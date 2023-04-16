@@ -8,7 +8,7 @@ namespace KVSQLite
 {
 
 class StatusPrivate;
-class Q_SQL_EXPORT Status
+class KVSQLITE_EXPORT Status
 {
 public:
     enum ErrorType {

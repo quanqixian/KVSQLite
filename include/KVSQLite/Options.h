@@ -8,7 +8,7 @@ namespace KVSQLite
 /**
  * Options to control the behavior of a database (passed to DB::Open)
  */
-struct Q_SQL_EXPORT Options
+struct KVSQLITE_EXPORT Options
 {
     /* Create an Options object with default values for all fields. */
     Options() = default;
@@ -21,7 +21,7 @@ struct Q_SQL_EXPORT Options
 };
 
 /* Options that control write operations */
-struct Q_SQL_EXPORT WriteOptions
+struct KVSQLITE_EXPORT WriteOptions
 {
     WriteOptions() = default;
 

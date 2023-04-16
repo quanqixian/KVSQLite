@@ -14,6 +14,11 @@ set(KVSQLITE_SOURCES
 
 find_package(Threads REQUIRED)
 
+#   If the KVSQLITE_EXPORT_SYMBOL macro is defined, KVSQLITE_EXPORT will
+# be defined as __declspec( dllexport ), which is used to export symbols when
+#  compiling the library.
+add_definitions(-DKVSQLITE_EXPORT_SYMBOL)
+
 if(KVSQLITE_BUILD_SHARED_LIBS)
 	add_library(KVSQLite SHARED ${KVSQLITE_SOURCES})
 	set_target_properties(KVSQLite PROPERTIES OUTPUT_NAME KVSQLite)

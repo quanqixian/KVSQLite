@@ -7,12 +7,12 @@
      * compiles the KVSQLite library 
      */
     #ifdef KVSQLITE_EXPORT_SYMBOL 
-        #define Q_SQL_EXPORT    __declspec( dllexport )
+        #define KVSQLITE_EXPORT    __declspec( dllexport )
     #else
-        #define Q_SQL_EXPORT    __declspec( dllimport )
+        #define KVSQLITE_EXPORT    __declspec( dllimport )
     #endif
 #else
-    #define Q_SQL_EXPORT
+    #define KVSQLITE_EXPORT
 #endif
 
 #endif
