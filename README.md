@@ -1,5 +1,8 @@
 # 1.Introduction
 
+[![badge](https://img.shields.io/badge/license-MIT-blue)](https://github.com/quanqixian/EVHttpServer/blob/master/LICENSE)
+[![badge](https://img.shields.io/badge/document-doxygen-brightgreen)](https://quanqixian.github.io/EVHttpServer/)
+
 KVSQLite implements the interface of using sqlite in key-value mode. The interface of KVSQLite is modeled after the interface of leveldb.
 
 
