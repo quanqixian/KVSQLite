@@ -13,7 +13,7 @@ Generating code coverage reports is only supported on Linux systems. You need to
 1. Clone the repository. 
 
 ```shell
-git clone https://gitee.com/Q_uan/KVSQLite.git
+git clone https://github.com/quanqixian/KVSQLite.git
 ```
 
 2. Generate the necessary build files. 

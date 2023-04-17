@@ -151,7 +151,7 @@ See more examples [here](./example/README.md).
 1. Clone the repository
 
 ```shell
-git clone https://gitee.com/QWorkShop/KVSQLite.git
+git clone https://github.com/quanqixian/KVSQLite.git
 ```
 
 2. Generate the necessary build files
