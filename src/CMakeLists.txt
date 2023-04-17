@@ -24,8 +24,6 @@ if(KVSQLITE_BUILD_SHARED_LIBS)
 	set_target_properties(KVSQLite PROPERTIES OUTPUT_NAME KVSQLite)
 	set_target_properties(KVSQLite PROPERTIES INSTALL_RPATH "$ORIGIN")
 
-	target_compile_definitions(KVSQLite PRIVATE SQLITE_SHARED_LIBRARY)
-
 	target_include_directories(KVSQLite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include/
         ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/sqlite/
 	)

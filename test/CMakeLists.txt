@@ -46,6 +46,11 @@ set(UNIT_TEST_SOURCES
 )
 
 add_executable(unitTest ${UNIT_TEST_SOURCES})
+
+#Compile with source code, defining KVSQLITE_BUILD_WITH_SOURCES macro will
+# affect the definition of KVSQLITE_EXPORT macro.
+target_compile_definitions(unitTest PRIVATE KVSQLITE_BUILD_WITH_SOURCES)
+
 set_target_properties(unitTest PROPERTIES OUTPUT_NAME unitTest)
 target_include_directories(unitTest PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/../include
