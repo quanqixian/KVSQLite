@@ -59,6 +59,8 @@ endif()
 # `/w` disables all warnings. This is needed because `gtest` enables
 # `/WX` (equivalent of `-Werror`) for some reason, breaking builds
 # when MSVS adds new warnings.
-add_compile_options(/w)
+if(MSVC)
+    add_compile_options(/w)
+endif()
 
 add_subdirectory(${THIRDPARTY_SOURCE_DIR})
