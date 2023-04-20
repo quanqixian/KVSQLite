@@ -165,6 +165,75 @@ TEST(KVSQLite, Memory)
 TEST(KVSQLite, Generics)
 {
     {
+        KVSQLite::DB<int, int> * pDB = nullptr;
+        KVSQLite::Options opt;
+
+        KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, ":memory:", &pDB);
+        ASSERT_EQ(status.ok(), true);
+
+        KVSQLite::WriteOptions options;
+        status = pDB->put(options, 1, 2);
+        EXPECT_EQ(status.ok(), true);
+        int val = 0;
+        status = pDB->get(1, val);
+        EXPECT_EQ(status.ok(), true);
+        status = pDB->del(KVSQLite::WriteOptions(), 1);
+        EXPECT_EQ(status.ok(), true);
+        delete pDB;
+    }
+    {
+        KVSQLite::DB<int, int64_t> * pDB = nullptr;
+        KVSQLite::Options opt;
+
+        KVSQLite::Status status = KVSQLite::DB<int, int64_t>::open(opt, ":memory:", &pDB);
+        ASSERT_EQ(status.ok(), true);
+
+        KVSQLite::WriteOptions options;
+        status = pDB->put(options, 1, 2);
+        EXPECT_EQ(status.ok(), true);
+        int64_t val = 0;
+        status = pDB->get(1, val);
+        EXPECT_EQ(status.ok(), true);
+        status = pDB->del(KVSQLite::WriteOptions(), 1);
+        EXPECT_EQ(status.ok(), true);
+        delete pDB;
+    }
+    {
+        KVSQLite::DB<int, double> * pDB = nullptr;
+        KVSQLite::Options opt;
+
+        KVSQLite::Status status = KVSQLite::DB<int, double>::open(opt, ":memory:", &pDB);
+        ASSERT_EQ(status.ok(), true);
+
+        KVSQLite::WriteOptions options;
+        status = pDB->put(options, 1, 2.0);
+        EXPECT_EQ(status.ok(), true);
+        double val = 0;
+        status = pDB->get(1, val);
+        EXPECT_EQ(status.ok(), true);
+        status = pDB->del(KVSQLite::WriteOptions(), 1);
+        EXPECT_EQ(status.ok(), true);
+        delete pDB;
+    }
+    {
+        KVSQLite::DB<int, std::string> * pDB = nullptr;
+        KVSQLite::Options opt;
+
+        KVSQLite::Status status = KVSQLite::DB<int, std::string>::open(opt, ":memory:", &pDB);
+        ASSERT_EQ(status.ok(), true);
+
+        KVSQLite::WriteOptions options;
+        status = pDB->put(options, 1, "2");
+        EXPECT_EQ(status.ok(), true);
+        std::string val = 0;
+        status = pDB->get(1, val);
+        EXPECT_EQ(status.ok(), true);
+        status = pDB->del(KVSQLite::WriteOptions(), 1);
+        EXPECT_EQ(status.ok(), true);
+        delete pDB;
+    }
+
+    {
         KVSQLite::DB<std::string, double> * pDB = nullptr;
         KVSQLite::Options opt;
 

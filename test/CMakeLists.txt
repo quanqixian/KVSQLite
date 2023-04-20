@@ -41,6 +41,7 @@ endfunction()
 
 set(UNIT_TEST_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/Status.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/DB.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/sqlite/sqlite3.c
 	main.cpp
 )
