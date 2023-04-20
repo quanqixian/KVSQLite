@@ -53,4 +53,12 @@ if (WIN32)
 	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)   
 endif()
 
+# error C2220: warning treated as error
+# see : https://github.com/google/googletest/issues/1373
+#
+# `/w` disables all warnings. This is needed because `gtest` enables
+# `/WX` (equivalent of `-Werror`) for some reason, breaking builds
+# when MSVS adds new warnings.
+add_compile_options(/w)
+
 add_subdirectory(${THIRDPARTY_SOURCE_DIR})
