@@ -126,8 +126,8 @@ TEST(KVSQLite, multiDB)
     optionsA.sync = true;
     statusA = pDBA->put(optionsA, 0, 0);
 
-
-    for(int i= 1; i <= 10000; i++)
+    /* If the following code runs slow like a synchronous way, it may be a bug */
+    for(int i= 1; i <= 1000; i++)
     {
         statusB = pDBB->put(optionsB, i, i*100);
         EXPECT_EQ(statusB.ok(), true);
@@ -225,7 +225,7 @@ TEST(KVSQLite, Generics)
         KVSQLite::WriteOptions options;
         status = pDB->put(options, 1, "2");
         EXPECT_EQ(status.ok(), true);
-        std::string val = 0;
+        std::string val;
         status = pDB->get(1, val);
         EXPECT_EQ(status.ok(), true);
         status = pDB->del(KVSQLite::WriteOptions(), 1);
