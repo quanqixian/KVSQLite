@@ -28,7 +28,7 @@ cmake -B build -S . -DCMAKE_INSTALL_PREFIX=/path/to/install  -DCMAKE_BUILD_TYPE=
 3. Compile the source code. 
 
 ```cmake
-cmake --build build
+cmake --build build --config Debug
 ```
 
 4. Run tests and generate code coverage reports. 

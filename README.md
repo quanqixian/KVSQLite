@@ -170,7 +170,7 @@ cmake -B build -S . -DCMAKE_INSTALL_PREFIX=/path/to/install -DCMAKE_BUILD_TYPE=R
 3. Compile the source code. In this step, third-party libraries, KVSQLite library, samples, tests will be compiled.
 
 ```cmake
-cmake --build build
+cmake --build build --config Release
 ```
 
 4. Install to system
