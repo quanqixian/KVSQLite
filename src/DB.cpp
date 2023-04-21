@@ -2,9 +2,21 @@
 #include "KVSQLite/Slice.h"
 #include <cstdio>
 #include "sqlite3.h"
+#include <mutex>
 
 namespace KVSQLite
 {
+
+class DBImpl
+{
+public:
+    sqlite3 *db = nullptr;
+    sqlite3_stmt *putSQL = nullptr;
+    sqlite3_stmt *getSQL = nullptr;
+    sqlite3_stmt *delSQL = nullptr;
+    std::mutex mutex;
+    bool syncWrite = false;
+};
 
 template<typename T>
 struct mapping_traits
@@ -76,7 +88,7 @@ public:
     {
         return sqlite3_bind_blob(stmt, idx, val.data(), val.size(), SQLITE_STATIC);
     }
-	static KVSQLite::Slice getColumn(sqlite3_stmt *stmt, const int &idx)
+    static KVSQLite::Slice getColumn(sqlite3_stmt *stmt, const int &idx)
     {
         const char * p = (char *)sqlite3_column_blob(stmt, idx);
         int size = sqlite3_column_bytes(stmt, idx);
@@ -91,8 +103,7 @@ public:
     }
 };
 
-template<typename K, typename V>
-Status DB<K, V>::execSQL(sqlite3 * p, const std::string & sql)
+static inline Status execSQL(sqlite3 * p, const std::string & sql)
 {
     char *errmsg = nullptr;
 
@@ -110,8 +121,7 @@ Status DB<K, V>::execSQL(sqlite3 * p, const std::string & sql)
     return Status();
 }
 
-template<typename K, typename V>
-Status DB<K, V>::setSync(sqlite3 *p, bool sync)
+static inline Status setSync(sqlite3 *p, bool sync = true)
 {
     const std::string query = sync ? "PRAGMA synchronous = FULL;" : "PRAGMA synchronous = OFF;";
     return execSQL(p, query);
@@ -160,16 +170,16 @@ Status DB<K, V>::open(const Options & options, const std::string & filename, DB 
         {
             flags |= SQLITE_OPEN_CREATE;
         }
-        sqlRet = sqlite3_open_v2(filename.c_str(), &pDB->m_db, flags, nullptr);
+        sqlRet = sqlite3_open_v2(filename.c_str(), &pDB->m_DBImpl->db, flags, nullptr);
         if(SQLITE_OK != sqlRet)
         {
             std::string databaseErr = "Fail to open:" + filename;
-            status = Status(sqlite3_errmsg(pDB->m_db), databaseErr, Status::IOError, std::to_string(sqlRet));
+            status = Status(sqlite3_errmsg(pDB->m_DBImpl->db), databaseErr, Status::IOError, std::to_string(sqlRet));
             break;
         }
 
         /* By default, write is asynchronous */
-        status = pDB->setSync(pDB->m_db, false);
+        status = setSync(pDB->m_DBImpl->db, false);
         if(!status.ok())
         {
             return status;
@@ -185,7 +195,7 @@ Status DB<K, V>::open(const Options & options, const std::string & filename, DB 
              * then sqlite3_exec() sets the pointer in its 5th parameter to NULL before
              * returning.
              */
-            sqlRet = sqlite3_exec(pDB->m_db, query.c_str(), nullptr, nullptr, &errmsg);
+            sqlRet = sqlite3_exec(pDB->m_DBImpl->db, query.c_str(), nullptr, nullptr, &errmsg);
             if(SQLITE_OK != sqlRet)
             {
                 std::string databaseErr = "Fail to exec:" + query;
@@ -196,33 +206,33 @@ Status DB<K, V>::open(const Options & options, const std::string & filename, DB 
 
         {
             const std::string query = "INSERT OR REPLACE INTO " + tableName + "(key, value) VALUES (?, ?)";
-            sqlRet = sqlite3_prepare_v2(pDB->m_db, query.c_str(), query.size(), &pDB->m_putSQL, nullptr);
+            sqlRet = sqlite3_prepare_v2(pDB->m_DBImpl->db, query.c_str(), query.size(), &pDB->m_DBImpl->putSQL, nullptr);
             if(SQLITE_OK != sqlRet)
             {
                 std::string databaseErr = "Fail to exec:" + query;
-                status = Status(sqlite3_errmsg(pDB->m_db), databaseErr, Status::InvalidArgument, std::to_string(sqlRet));
+                status = Status(sqlite3_errmsg(pDB->m_DBImpl->db), databaseErr, Status::InvalidArgument, std::to_string(sqlRet));
                 break;
             }
         }
 
         {
             const std::string query = "SELECT value FROM " + tableName + " WHERE key = ?";
-            sqlRet = sqlite3_prepare_v2(pDB->m_db, query.c_str(), query.size(), &pDB->m_getSQL, nullptr);
+            sqlRet = sqlite3_prepare_v2(pDB->m_DBImpl->db, query.c_str(), query.size(), &pDB->m_DBImpl->getSQL, nullptr);
             if(SQLITE_OK != sqlRet)
             {
                 std::string databaseErr = "Fail to exec:" + query;
-                status = Status(sqlite3_errmsg(pDB->m_db), databaseErr, Status::InvalidArgument, std::to_string(sqlRet));
+                status = Status(sqlite3_errmsg(pDB->m_DBImpl->db), databaseErr, Status::InvalidArgument, std::to_string(sqlRet));
                 break;
             }
         }
 
         {
             const std::string query = "DELETE FROM " + tableName + " WHERE key = ?";
-            sqlRet = sqlite3_prepare_v2(pDB->m_db, query.c_str(), query.size(), &pDB->m_delSQL, nullptr);
+            sqlRet = sqlite3_prepare_v2(pDB->m_DBImpl->db, query.c_str(), query.size(), &pDB->m_DBImpl->delSQL, nullptr);
             if(SQLITE_OK != sqlRet)
             {
                 std::string databaseErr = "Fail to exec:" + query;
-                status = Status(sqlite3_errmsg(pDB->m_db), databaseErr, Status::InvalidArgument, std::to_string(sqlRet));
+                status = Status(sqlite3_errmsg(pDB->m_DBImpl->db), databaseErr, Status::InvalidArgument, std::to_string(sqlRet));
                 break;
             }
         }
@@ -240,50 +250,53 @@ template<typename K, typename V>
 DB<K, V>::~DB()
 {
     close();
+
+    delete m_DBImpl;
+    m_DBImpl = nullptr;
 }
 
 template<typename K, typename V>
 Status DB<K, V>::put(const WriteOptions & options, const K & key, const V & value)
 {
     int sqlRet = 0;
-    std::lock_guard<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_DBImpl->mutex);
 
-    if(m_syncWrite != options.sync)
+    if(m_DBImpl->syncWrite != options.sync)
     {
-        m_syncWrite = options.sync;
-        Status status = setSync(m_db, false);
+        m_DBImpl->syncWrite = options.sync;
+        Status status = setSync(m_DBImpl->db, false);
         if(!status.ok())
         {
             return status;
         }
     }
 
-    sqlRet= sqlite3_reset(m_putSQL);
+    sqlRet= sqlite3_reset(m_DBImpl->putSQL);
     if(SQLITE_OK != sqlRet)
     {
         std::string databaseErr = "Fail to sqlite3_reset.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
-    sqlRet = mapping_traits<K>::bind(m_putSQL, 1, key);
+    sqlRet = mapping_traits<K>::bind(m_DBImpl->putSQL, 1, key);
     if(SQLITE_OK != sqlRet)
     {
         std::string databaseErr = "Fail to bind key.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
-    sqlRet = mapping_traits<V>::bind(m_putSQL, 2, value);
+    sqlRet = mapping_traits<V>::bind(m_DBImpl->putSQL, 2, value);
     if(SQLITE_OK != sqlRet)
     {
         std::string databaseErr = "Fail to bind value.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
-    sqlRet = sqlite3_step(m_putSQL);
+    sqlRet = sqlite3_step(m_DBImpl->putSQL);
     if(SQLITE_DONE != sqlRet)
     {
         std::string databaseErr = "Fail to sqlite3_step.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
     return Status();
@@ -292,31 +305,31 @@ Status DB<K, V>::put(const WriteOptions & options, const K & key, const V & valu
 template<typename K, typename V>
 Status DB<K, V>::get(const K & key, V & value)
 {
-    std::lock_guard<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_DBImpl->mutex);
 
-    int sqlRet= sqlite3_reset(m_getSQL);
+    int sqlRet= sqlite3_reset(m_DBImpl->getSQL);
     if(SQLITE_OK != sqlRet)
     {
         std::string databaseErr = "Fail to sqlite3_reset.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
-    sqlRet = mapping_traits<K>::bind(m_getSQL, 1, key);
+    sqlRet = mapping_traits<K>::bind(m_DBImpl->getSQL, 1, key);
     if(SQLITE_OK != sqlRet)
     {
         std::string databaseErr = "Fail to bind key.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
-    sqlRet = sqlite3_step(m_getSQL);
+    sqlRet = sqlite3_step(m_DBImpl->getSQL);
 
     if(SQLITE_ROW != sqlRet)
     {
         std::string databaseErr = "Not found.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::NotFound, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::NotFound, std::to_string(sqlRet));
     }
 
-    value = mapping_traits<V>::getColumn(m_getSQL, 0);
+    value = mapping_traits<V>::getColumn(m_DBImpl->getSQL, 0);
     return Status();
 }
 
@@ -324,37 +337,37 @@ template<typename K, typename V>
 Status DB<K, V>::del(const WriteOptions & options, const K & key)
 {
     int sqlRet = 0;
-    std::lock_guard<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_DBImpl->mutex);
 
-    if(m_syncWrite != options.sync)
+    if(m_DBImpl->syncWrite != options.sync)
     {
-        m_syncWrite = options.sync;
-        Status status = setSync(m_db, m_syncWrite);
+        m_DBImpl->syncWrite = options.sync;
+        Status status = setSync(m_DBImpl->db, m_DBImpl->syncWrite);
         if(!status.ok())
         {
             return status;
         }
     }
 
-    sqlRet= sqlite3_reset(m_delSQL);
+    sqlRet= sqlite3_reset(m_DBImpl->delSQL);
     if(SQLITE_OK != sqlRet)
     {
         std::string databaseErr = "Fail to sqlite3_reset.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
-    sqlRet = mapping_traits<K>::bind(m_delSQL, 1, key);
+    sqlRet = mapping_traits<K>::bind(m_DBImpl->delSQL, 1, key);
     if(SQLITE_OK != sqlRet)
     {
         std::string databaseErr = "Fail to bind key.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
-    sqlRet = sqlite3_step(m_delSQL);
+    sqlRet = sqlite3_step(m_DBImpl->delSQL);
     if(SQLITE_DONE != sqlRet)
     {
         std::string databaseErr = "Fail to sqlite3_step.";
-        return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+        return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
     }
 
     return Status();
@@ -365,12 +378,12 @@ Status DB<K, V>::write(const WriteOptions & options, WriteBatch<K, V>* updates)
 {
     Status status;
     int sqlRet = 0;
-    std::lock_guard<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_DBImpl->mutex);
 
-    if(m_syncWrite != options.sync)
+    if(m_DBImpl->syncWrite != options.sync)
     {
-        m_syncWrite = options.sync;
-        status = setSync(m_db, m_syncWrite);
+        m_DBImpl->syncWrite = options.sync;
+        status = setSync(m_DBImpl->db, m_DBImpl->syncWrite);
         if(!status.ok())
         {
             return status;
@@ -378,7 +391,7 @@ Status DB<K, V>::write(const WriteOptions & options, WriteBatch<K, V>* updates)
     }
 
     {
-        status = execSQL(m_db, "BEGIN");
+        status = execSQL(m_DBImpl->db, "BEGIN");
         if(!status.ok())
         {
             return status;
@@ -391,32 +404,32 @@ Status DB<K, V>::write(const WriteOptions & options, WriteBatch<K, V>* updates)
         if(WriteBatch<K, V>::NodeType::PUT == iter->type)
         {
             status = [&]()->Status {
-                sqlRet= sqlite3_reset(m_putSQL);
+                sqlRet= sqlite3_reset(m_DBImpl->putSQL);
                 if(SQLITE_OK != sqlRet)
                 {
                     std::string databaseErr = "Fail to sqlite3_reset.";
-                    return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+                    return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                 }
 
-                sqlRet = mapping_traits<K>::bind(m_putSQL, 1, iter->key);
+                sqlRet = mapping_traits<K>::bind(m_DBImpl->putSQL, 1, iter->key);
                 if(SQLITE_OK != sqlRet)
                 {
                     std::string databaseErr = "Fail to bind key.";
-                    return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+                    return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                 }
 
-                sqlRet = mapping_traits<V>::bind(m_putSQL, 2, iter->value);
+                sqlRet = mapping_traits<V>::bind(m_DBImpl->putSQL, 2, iter->value);
                 if(SQLITE_OK != sqlRet)
                 {
                     std::string databaseErr = "Fail to bind value.";
-                    return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+                    return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                 }
 
-                sqlRet = sqlite3_step(m_putSQL);
+                sqlRet = sqlite3_step(m_DBImpl->putSQL);
                 if(SQLITE_DONE != sqlRet)
                 {
                     std::string databaseErr = "Fail to sqlite3_step.";
-                    return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+                    return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                 }
                 return Status();
             }();
@@ -424,25 +437,25 @@ Status DB<K, V>::write(const WriteOptions & options, WriteBatch<K, V>* updates)
         else if(WriteBatch<K, V>::NodeType::DEL == iter->type)
         {
             status = [&]()->Status {
-                sqlRet= sqlite3_reset(m_delSQL);
+                sqlRet= sqlite3_reset(m_DBImpl->delSQL);
                 if(SQLITE_OK != sqlRet)
                 {
                     std::string databaseErr = "Fail to sqlite3_reset.";
-                    return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+                    return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                 }
 
-                sqlRet = mapping_traits<K>::bind(m_delSQL, 1, iter->key);
+                sqlRet = mapping_traits<K>::bind(m_DBImpl->delSQL, 1, iter->key);
                 if(SQLITE_OK != sqlRet)
                 {
                     std::string databaseErr = "Fail to bind key.";
-                    return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+                    return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                 }
 
-                sqlRet = sqlite3_step(m_delSQL);
+                sqlRet = sqlite3_step(m_DBImpl->delSQL);
                 if(SQLITE_DONE != sqlRet)
                 {
                     std::string databaseErr = "Fail to sqlite3_step.";
-                    return Status(sqlite3_errmsg(m_db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
+                    return Status(sqlite3_errmsg(m_DBImpl->db), databaseErr, Status::UnknownError, std::to_string(sqlRet));
                 }
                 return Status();
             }();
@@ -456,15 +469,15 @@ Status DB<K, V>::write(const WriteOptions & options, WriteBatch<K, V>* updates)
 
     if(!status.ok())
     {
-        execSQL(m_db, "ROLLBACK");
+        execSQL(m_DBImpl->db, "ROLLBACK");
         return status;
     }
 
     {
-        status = execSQL(m_db, "COMMIT");
+        status = execSQL(m_DBImpl->db, "COMMIT");
         if(!status.ok())
         {
-            execSQL(m_db, "ROLLBACK");
+            execSQL(m_DBImpl->db, "ROLLBACK");
             return status;
         }
     }
@@ -474,32 +487,33 @@ Status DB<K, V>::write(const WriteOptions & options, WriteBatch<K, V>* updates)
 template<typename K, typename V>
 DB<K, V>::DB()
 {
+    m_DBImpl = new DBImpl();
 }
 
 template<typename K, typename V>
 void DB<K, V>::close()
 {
-    std::lock_guard<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_DBImpl->mutex);
 
-    if(m_getSQL)
+    if(m_DBImpl->getSQL)
     {
-        sqlite3_finalize(m_getSQL);
-        m_getSQL = nullptr;
+        sqlite3_finalize(m_DBImpl->getSQL);
+        m_DBImpl->getSQL = nullptr;
     }
-    if(m_putSQL)
+    if(m_DBImpl->putSQL)
     {
-        sqlite3_finalize(m_putSQL);
-        m_putSQL = nullptr;
+        sqlite3_finalize(m_DBImpl->putSQL);
+        m_DBImpl->putSQL = nullptr;
     }
-    if(m_delSQL)
+    if(m_DBImpl->delSQL)
     {
-        sqlite3_finalize(m_delSQL);
-        m_delSQL = nullptr;
+        sqlite3_finalize(m_DBImpl->delSQL);
+        m_DBImpl->delSQL = nullptr;
     }
-    if(m_db)
+    if(m_DBImpl->db)
     {
-        sqlite3_close(m_db);
-        m_db = nullptr;
+        sqlite3_close(m_DBImpl->db);
+        m_DBImpl->db = nullptr;
     }
 }
 

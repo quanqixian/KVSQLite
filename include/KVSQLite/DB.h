@@ -7,18 +7,15 @@
 #define __KVSQLITE_DB_H__
 
 #include <string>
-#include <mutex>
+#include "Export.h"
 #include "Status.h"
 #include "Options.h"
 #include "WriteBatch.h"
-#include "Export.h"
-
-struct sqlite3;
-struct sqlite3_stmt;
 
 namespace KVSQLite
 {
 
+class DBImpl;
 /**
  * @brief The DB class implements the database operation interface.
  */
@@ -69,21 +66,13 @@ public:
      */
     Status write(const WriteOptions & options, WriteBatch<K, V>* updates);
 private:
-    static inline Status execSQL(sqlite3 * p, const std::string & sql);
-    static inline Status setSync(sqlite3 *p, bool sync = false);
-private:
     DB();
     void close();
 private:
     DB(const DB&) = delete;
     DB& operator=(const DB&) = delete;
 private:
-    sqlite3 *m_db = nullptr;
-    sqlite3_stmt *m_putSQL = nullptr;
-    sqlite3_stmt *m_getSQL = nullptr;
-    sqlite3_stmt *m_delSQL = nullptr;
-    std::mutex m_mutex;
-    bool m_syncWrite = false;
+    DBImpl* m_DBImpl = nullptr;
 };
 
 }/* end of namespace KVSQLite */
