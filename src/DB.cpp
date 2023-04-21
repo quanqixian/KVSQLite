@@ -149,6 +149,18 @@ Status DB<K, V>::open(const Options & options, const std::string & filename, DB 
     {
         if(options.error_if_exists)
         {
+#ifdef _WIN32
+            /* if open success, then file exist */
+            FILE * pF = nullptr;
+            int errRet = fopen_s(&pF, filename.c_str(), "r");
+            if(0 != errRet)
+            {
+                fclose(pF);
+                std::string databaseErr = "File already exist:" + filename;
+                status = Status("", databaseErr, Status::IOError, "0");
+                break;
+            }
+#else
             /* if open success, then file exist */
             FILE * pF = fopen(filename.c_str(), "r");
             if(nullptr != pF)
@@ -158,7 +170,7 @@ Status DB<K, V>::open(const Options & options, const std::string & filename, DB 
                 status = Status("", databaseErr, Status::IOError, "0");
                 break;
             }
-
+#endif
         }
         /* open or create database file.
          * If the filename is an empty string, then a private, temporary on-disk

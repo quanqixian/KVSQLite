@@ -12,7 +12,7 @@
         #ifdef KVSQLITE_EXPORT_SYMBOL 
             #define KVSQLITE_EXPORT    __declspec( dllexport )
         #else
-            #define KVSQLITE_EXPORT    //__declspec( dllimport )
+            #define KVSQLITE_EXPORT    __declspec( dllimport )
         #endif
     #else
         #ifdef KVSQLITE_EXPORT_SYMBOL 
