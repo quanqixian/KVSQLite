@@ -1,4 +1,5 @@
 #include "KVSQLite/DB.h"
+#include "KVSQLite/Slice.h"
 #include <cstdio>
 #include "sqlite3.h"
 
@@ -64,6 +65,29 @@ public:
     {
         const char * p = (char *)sqlite3_column_text(stmt, idx);
         return p ? p : "";
+    }
+};
+
+template<>
+struct mapping_traits<KVSQLite::Slice>
+{
+public:
+    static int bind(sqlite3_stmt *stmt, const int &idx, const Slice &val)
+    {
+        return sqlite3_bind_blob(stmt, idx, val.data(), val.size(), SQLITE_STATIC);
+    }
+	static KVSQLite::Slice getColumn(sqlite3_stmt *stmt, const int &idx)
+    {
+        const char * p = (char *)sqlite3_column_blob(stmt, idx);
+        int size = sqlite3_column_bytes(stmt, idx);
+        if(p)
+        {
+            return Slice(p, size);
+        }
+        else
+        {
+            return Slice();
+        }
     }
 };
 
@@ -486,21 +510,31 @@ template class DB<int, int>;
 template class DB<int, int64_t>;
 template class DB<int, double>;
 template class DB<int, std::string>;
+template class DB<int, Slice>;
 
 template class DB<int64_t, int>;
 template class DB<int64_t, int64_t>;
 template class DB<int64_t, double>;
 template class DB<int64_t, std::string>;
+template class DB<int64_t, Slice>;
 
 template class DB<double, int>;
 template class DB<double, int64_t>;
 template class DB<double, double>;
 template class DB<double, std::string>;
+template class DB<double, Slice>;
 
 template class DB<std::string, int>;
 template class DB<std::string, int64_t>;
 template class DB<std::string, double>;
 template class DB<std::string, std::string>;
+template class DB<std::string, Slice>;
+
+template class DB<Slice, int>;
+template class DB<Slice, int64_t>;
+template class DB<Slice, double>;
+template class DB<Slice, std::string>;
+template class DB<Slice, Slice>;
 
 }/* end of namespace KVSQLite */
 

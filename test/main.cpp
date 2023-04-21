@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "KVSQLite/DB.h"
+#include "KVSQLite/Slice.h"
 #include <thread>
 
 /**
@@ -96,8 +97,8 @@ TEST(KVSQLite, delNoExist)
     KVSQLite::Status status = KVSQLite::DB<int, int>::open(opt, "KVSQLite.db", &pDB);
     ASSERT_EQ(status.ok(), true);
 
-	status = pDB->del(KVSQLite::WriteOptions(), 99999);
-	EXPECT_EQ(status.ok(), true);
+    status = pDB->del(KVSQLite::WriteOptions(), 99999);
+    EXPECT_EQ(status.ok(), true);
 
     delete pDB;
 }
@@ -297,6 +298,64 @@ TEST(KVSQLite, write)
     status = pDB->write(options, &batch);
     EXPECT_EQ(status.ok(), true);
     delete pDB;
+}
+
+/**
+ * @brief
+ */
+TEST(KVSQLite, Slice)
+{
+    {
+        KVSQLite::DB<int64_t, KVSQLite::Slice> * pDB = nullptr;
+        KVSQLite::Options opt;
+        KVSQLite::Status status = KVSQLite::DB<int64_t, KVSQLite::Slice>::open(opt, ":memory:", &pDB);
+        ASSERT_EQ(status.ok(), true);
+
+        KVSQLite::WriteOptions options;
+        char buf[8] = {0x01, 0x02, 0x03, 0x00, 0x01};
+        status = pDB->put(options, 1, KVSQLite::Slice(buf, sizeof(buf)));
+        EXPECT_EQ(status.ok(), true);
+        KVSQLite::Slice val;
+        status = pDB->get(1, val);
+        EXPECT_EQ(status.ok(), true);
+
+        ASSERT_EQ(val.size(), sizeof(buf));
+        for(int i = 0; i < val.size(); i++)
+        {
+            EXPECT_EQ(val[i], buf[i]);
+        }
+        status = pDB->del(KVSQLite::WriteOptions(), 1);
+        EXPECT_EQ(status.ok(), true);
+        delete pDB;
+    }
+
+    {
+        KVSQLite::DB<KVSQLite::Slice, KVSQLite::Slice> * pDB = nullptr;
+        KVSQLite::Options opt;
+        KVSQLite::Status status = KVSQLite::DB<KVSQLite::Slice, KVSQLite::Slice>::open(opt, ":memory:", &pDB);
+        ASSERT_EQ(status.ok(), true);
+
+        KVSQLite::WriteOptions options;
+        char keyBuf[8] = {0x01, 0x02, 0x03, 0x00, 0x01};
+        char valBuf[8] = {0x03, 0x02, 0x01, 0x00, 0x04};
+		KVSQLite::Slice key = KVSQLite::Slice(keyBuf, sizeof(keyBuf));
+		KVSQLite::Slice val = KVSQLite::Slice(valBuf, sizeof(valBuf));
+
+        status = pDB->put(options, key, val);
+        EXPECT_EQ(status.ok(), true);
+        KVSQLite::Slice valGet;
+        status = pDB->get(key, valGet);
+        EXPECT_EQ(status.ok(), true);
+
+        ASSERT_EQ(valGet.size(), val.size());
+        for(int i = 0; i < valGet.size(); i++)
+        {
+            EXPECT_EQ(valGet[i], val[i]);
+        }
+        status = pDB->del(KVSQLite::WriteOptions(), key);
+        EXPECT_EQ(status.ok(), true);
+        delete pDB;
+    }
 }
 
 int main(int argc, char **argv)
