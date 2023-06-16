@@ -19,6 +19,7 @@ void example()
         batch.put("key1", "val1");
         batch.put("key2", "val2");
         batch.del("key3");
+        status = pDB->write(KVSQLite::WriteOptions(), &batch);
         if(!status.ok())
         {
             std::cout << status.toString() << std::endl;
