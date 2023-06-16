@@ -27,7 +27,7 @@ shows how to open a database, creating it if necessary:
 KVSQLite::DB<std::string, std::string> * pDB = nullptr;
 KVSQLite::Options options;
 options.create_if_missing = true;
-KVSQLite::Status status = KVSQLite::DB<std::string, std::string>::open(options, "KVSQLite.db", &db);
+KVSQLite::Status status = KVSQLite::DB<std::string, std::string>::open(options, "KVSQLite.db", &pDB);
 assert(status.ok());
 ...
 ```
